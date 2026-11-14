@@ -1,0 +1,58 @@
+{
+  "Records": [
+    {
+      "eventTime": "2026-11-13T10:00:00Z",
+      "eventName": "DescribeInstances",
+      "eventSource": "ec2.amazonaws.com",
+      "sourceIPAddress": "192.0.2.10",
+      "userIdentity": {
+        "userName": "admin"
+      }
+    },
+    {
+      "eventTime": "2026-11-13T10:05:00Z",
+      "eventName": "DeleteTrail",
+      "eventSource": "cloudtrail.amazonaws.com",
+      "sourceIPAddress": "198.51.100.23",
+      "userIdentity": {
+        "userName": "unknown-user"
+      }
+    },
+    {
+      "eventTime": "2026-11-13T10:10:00Z",
+      "eventName": "ConsoleLogin",
+      "eventSource": "signin.amazonaws.com",
+      "sourceIPAddress": "203.0.113.10",
+      "userIdentity": {
+        "userName": "admin"
+      },
+      "responseElements": {
+        "ConsoleLogin": "Failure"
+      }
+    },
+    {
+      "eventTime": "2026-11-13T10:11:00Z",
+      "eventName": "ConsoleLogin",
+      "eventSource": "signin.amazonaws.com",
+      "sourceIPAddress": "203.0.113.10",
+      "userIdentity": {
+        "userName": "admin"
+      },
+      "responseElements": {
+        "ConsoleLogin": "Failure"
+      }
+    },
+    {
+      "eventTime": "2026-11-13T10:12:00Z",
+      "eventName": "ConsoleLogin",
+      "eventSource": "signin.amazonaws.com",
+      "sourceIPAddress": "203.0.113.10",
+      "userIdentity": {
+        "userName": "admin"
+      },
+      "responseElements": {
+        "ConsoleLogin": "Failure"
+      }
+    }
+  ]
+}

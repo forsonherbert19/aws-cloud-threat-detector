@@ -1,0 +1,8 @@
+*_backup.py
+*_backup.json
+threat_detector_step*.py.venv/
+__pycache__/
+*.pyc
+.DS_Store
+security_alerts.json
+
