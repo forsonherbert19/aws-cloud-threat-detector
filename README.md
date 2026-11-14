@@ -1,68 +1,34 @@
 # AWS Cloud Threat Detection System
 
-A Python-based cloud security monitoring project that analyzes simulated AWS CloudTrail events, detects suspicious activity, and generates structured security alerts.
+![Python Security Tests](https://github.com/forsonherbert19/aws-cloud-threat-detector/actions/workflows/tests.yml/badge.svg)
+
+A cloud security monitoring and detection project built with Python and AWS. The system analyzes AWS CloudTrail activity, detects suspicious events, runs detection logic in AWS Lambda, records findings in CloudWatch Logs, and sends high-severity security alerts through Amazon SNS.
 
 ## Project Overview
 
-This project simulates how a cloud security monitoring system can analyze AWS activity logs and identify potentially malicious behavior.
+This project demonstrates a practical cloud threat-detection pipeline using AWS security services and Python.
 
-The detection engine currently identifies:
+It began as a local Python detection engine using simulated CloudTrail logs and was later extended into a live AWS event-driven architecture.
 
-- CloudTrail deletion activity
-- Failed AWS console login attempts
-- Repeated failed logins from the same IP address
-- Three failed login attempts occurring within a five-minute window
+The project demonstrates:
 
-The project also generates a structured JSON security report for further investigation.
-
-## Security Detection Rules
-
-### AWS-001 — CloudTrail Deletion Activity
-
-Detects the `DeleteTrail` API action.
-
-CloudTrail provides important audit logging in AWS environments, so deletion activity should be investigated to determine whether it was authorized.
-
-### AWS-002 — Repeated Failed Logins
-
-Detects three failed AWS console login attempts from the same IP address within five minutes.
-
-This may indicate password-guessing or brute-force activity and should be investigated.
-
-## Technologies Used
-
-- Python
-- JSON
-- Git
-- AWS CloudTrail concepts
-- Security log analysis
-- Unit testing
+- Cloud security monitoring
+- AWS CloudTrail analysis
 - Detection engineering
+- Event-driven security automation
+- Serverless security tooling
+- Automated alerting
+- Python unit testing
+- CI/CD with GitHub Actions
 
-## Project Architecture
+## Architecture
 
-Simulated AWS CloudTrail Logs  
-↓  
-Python Threat Detection Engine  
-↓  
-Detection Rules  
-↓  
-Structured Security Alerts  
-↓  
-security_alerts.json
-
-## Features
-
-- Parses AWS-style JSON security events
-- Uses reusable Python detection functions
-- Groups failed logins by source IP
-- Performs time-window-based threat detection
-- Assigns rule IDs and severity levels
-- Generates structured JSON reports
-- Includes automated unit tests
-- Uses synthetic security data only
-
-## Run the Detector
-
-```bash
-python threat_detector.py
+```mermaid
+flowchart TD
+    A[AWS API Activity] --> B[AWS CloudTrail]
+    B --> C[Amazon EventBridge]
+    C --> D[AWS Lambda Threat Detector]
+    D --> E[Detection Rules]
+    E --> F[Amazon CloudWatch Logs]
+    E --> G[Amazon SNS]
+    G --> H[Email Security Alert]
