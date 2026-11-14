@@ -1,0 +1,13 @@
+{
+  "version": "0",
+  "id": "test-event-001",
+  "detail-type": "AWS API Call via CloudTrail",
+  "source": "aws.cloudtrail",
+  "region": "us-east-1",
+  "resources": [],
+  "detail": {
+    "eventSource": "cloudtrail.amazonaws.com",
+    "eventName": "DeleteTrail",
+    "sourceIPAddress": "203.0.113.50"
+  }
+}

@@ -1,4 +1,8 @@
-*_backup.py
+lambda_deployment.zip
+lambda-deployment.zip
+lambda_response.json
+response.jsonlambda-deployment.zip
+response.json*_backup.py
 *_backup.json
 threat_detector_step*.py.venv/
 __pycache__/
@@ -10,3 +14,4 @@ security_alerts.json
 *_backup.py
 *_backup.json
 threat_detector_step*.py
+response.json
