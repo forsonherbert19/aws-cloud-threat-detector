@@ -1,146 +1,176 @@
-# AWS Cloud Threat Detection System
-# Project by Herbert Forson
-
 import json
+from collections import defaultdict
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-# Find the JSON log file
-log_file = Path(__file__).with_name("sample_cloudtrail_events.json")
 
-# Read simulated AWS CloudTrail events
-with open(log_file, "r", encoding="utf-8") as file:
-    data = json.load(file)
+def load_events(file_path):
+    with open(file_path, "r", encoding="utf-8") as file:
+        data = json.load(file)
 
-events = data["Records"]
+    return data["Records"]
 
-print("AWS Cloud Threat Detection System")
-print("---------------------------------")
 
-for event in events:
-    event_name = event["eventName"]
-    ip_address = event["sourceIPAddress"]
-
-    if event_name == "DeleteTrail":
-        print(f"[HIGH ALERT] CloudTrail deletion event from {ip_address}")
-
-    elif (
-        event_name == "ConsoleLogin"
-        and event.get("responseElements", {}).get("ConsoleLogin") == "Failure"
-    ):
-        print(f"[WARNING] Failed AWS login from {ip_address}")
-
-    else:
-        print(f"[NORMAL] {event_name} from {ip_address}")
-
-print("---------------------------------")
-print(f"Total events analyzed: {len(events)}")
-
-# Step 5B: Detect repeated failed logins
-
-from collections import defaultdict
-from datetime import datetime, timedelta
-
-failed_logins = defaultdict(list)
-
-# Collect timestamps of failed logins by IP
-for event in events:
-    if event.get("eventName") != "ConsoleLogin":
-        continue
-
-    response = event.get("responseElements") or {}
-
-    if response.get("ConsoleLogin") != "Failure":
-        continue
-
-    ip = event.get("sourceIPAddress")
-    time_string = event.get("eventTime")
-
-    if not ip or not time_string:
-        continue
-
-    login_time = datetime.fromisoformat(
-        time_string.replace("Z", "+00:00")
+def is_failed_login(event):
+    return (
+        event.get("eventName") == "ConsoleLogin"
+        and (event.get("responseElements") or {}).get("ConsoleLogin") == "Failure"
     )
 
-    failed_logins[ip].append(login_time)
 
-print("\nRepeated Failed Login Detection")
-print("---------------------------------")
-
-alert_found = False
-
-# Check each IP for 3 failures within 5 minutes
-for ip, timestamps in failed_logins.items():
-    timestamps.sort()
-
-    for i in range(len(timestamps) - 2):
-        first = timestamps[i]
-        third = timestamps[i + 2]
-
-        if third - first <= timedelta(minutes=5):
-            print(
-                f"[HIGH ALERT] Possible brute-force activity: "
-                f"3 failed logins from {ip} within 5 minutes"
-            )
-            alert_found = True
-            break
-
-if not alert_found:
-    print("No repeated-login threat detected")
+def detect_cloudtrail_deletion(event):
+    return event.get("eventName") == "DeleteTrail"
 
 
-# Step 6: Generate a structured security report
+def collect_failed_logins(events):
+    failed_logins = defaultdict(list)
 
-from datetime import timezone
+    for event in events:
+        if not is_failed_login(event):
+            continue
 
-alerts = []
+        ip_address = event.get("sourceIPAddress")
+        event_time = event.get("eventTime")
 
-# Record CloudTrail deletion-related events
-for event in events:
-    if event.get("eventName") == "DeleteTrail":
-        alerts.append({
-            "rule_id": "AWS-001",
-            "severity": "HIGH",
-            "threat_type": "CloudTrailDeletionEvent",
-            "source_ip": event.get("sourceIPAddress"),
-            "event_time": event.get("eventTime"),
-            "description": "CloudTrail deletion API activity detected. Investigate whether it succeeded."
-        })
+        if not ip_address or not event_time:
+            continue
 
-# Record repeated failed login findings
-for ip, timestamps in failed_logins.items():
-    times = sorted(timestamps)
+        timestamp = datetime.fromisoformat(
+            event_time.replace("Z", "+00:00")
+        )
 
-    for i in range(len(times) - 2):
-        if times[i + 2] - times[i] <= timedelta(minutes=5):
+        failed_logins[ip_address].append(timestamp)
+
+    return failed_logins
+
+
+def detect_repeated_failed_logins(
+    failed_logins,
+    threshold=3,
+    window_minutes=5
+):
+    findings = []
+
+    for ip_address, timestamps in failed_logins.items():
+        timestamps = sorted(timestamps)
+
+        for index in range(len(timestamps) - threshold + 1):
+            first = timestamps[index]
+            last = timestamps[index + threshold - 1]
+
+            if last - first <= timedelta(minutes=window_minutes):
+                findings.append({
+                    "rule_id": "AWS-002",
+                    "severity": "HIGH",
+                    "threat_type": "RepeatedFailedLogins",
+                    "source_ip": ip_address,
+                    "first_seen": first.isoformat(),
+                    "last_seen": last.isoformat(),
+                    "failed_attempts": threshold,
+                    "description": (
+                        "Possible password-guessing activity "
+                        "requiring investigation."
+                    )
+                })
+                break
+
+    return findings
+
+
+def generate_alerts(events):
+    alerts = []
+
+    for event in events:
+        if detect_cloudtrail_deletion(event):
             alerts.append({
-                "rule_id": "AWS-002",
+                "rule_id": "AWS-001",
                 "severity": "HIGH",
-                "threat_type": "RepeatedFailedLogins",
-                "source_ip": ip,
-                "first_seen": times[i].isoformat(),
-                "last_seen": times[i + 2].isoformat(),
-                "failed_attempts": 3,
-                "description": "Possible password-guessing activity requiring investigation."
+                "threat_type": "CloudTrailDeletionEvent",
+                "source_ip": event.get("sourceIPAddress"),
+                "event_time": event.get("eventTime"),
+                "description": (
+                    "CloudTrail deletion API activity detected. "
+                    "Investigate whether it succeeded."
+                )
             })
-            break
 
-report = {
-    "generated_at_utc": datetime.now(timezone.utc).isoformat(),
-    "total_events_analyzed": len(events),
-    "total_alerts": len(alerts),
-    "alerts": alerts
-}
+    failed_logins = collect_failed_logins(events)
+    alerts.extend(
+        detect_repeated_failed_logins(failed_logins)
+    )
 
-report_file = Path(__file__).with_name("security_alerts.json")
+    return alerts
 
-report_file.write_text(
-    json.dumps(report, indent=2) + "\n",
-    encoding="utf-8"
-)
 
-print("\nSecurity Report Generated")
-print("---------------------------------")
-print(f"Events analyzed: {len(events)}")
-print(f"Security findings: {len(alerts)}")
-print(f"Report saved: {report_file.name}")
+def save_report(events, alerts, report_file):
+    report = {
+        "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+        "total_events_analyzed": len(events),
+        "total_alerts": len(alerts),
+        "alerts": alerts
+    }
+
+    report_file.write_text(
+        json.dumps(report, indent=2) + "\n",
+        encoding="utf-8"
+    )
+
+
+def main():
+    project_directory = Path(__file__).parent
+
+    log_file = project_directory / "sample_cloudtrail_events.json"
+    report_file = project_directory / "security_alerts.json"
+
+    events = load_events(log_file)
+
+    print("AWS Cloud Threat Detection System")
+    print("---------------------------------")
+
+    for event in events:
+        event_name = event.get("eventName", "Unknown")
+        ip_address = event.get("sourceIPAddress", "Unknown")
+
+        if detect_cloudtrail_deletion(event):
+            print(
+                f"[HIGH ALERT] CloudTrail deletion event "
+                f"from {ip_address}"
+            )
+
+        elif is_failed_login(event):
+            print(
+                f"[WARNING] Failed AWS login "
+                f"from {ip_address}"
+            )
+
+        else:
+            print(
+                f"[NORMAL] {event_name} "
+                f"from {ip_address}"
+            )
+
+    alerts = generate_alerts(events)
+
+    print("---------------------------------")
+    print(f"Total events analyzed: {len(events)}")
+
+    print("\nSecurity Findings")
+    print("---------------------------------")
+
+    for alert in alerts:
+        print(
+            f"[{alert['severity']}] "
+            f"{alert['rule_id']} - "
+            f"{alert['threat_type']}"
+        )
+
+    save_report(events, alerts, report_file)
+
+    print("\nSecurity Report Generated")
+    print("---------------------------------")
+    print(f"Security findings: {len(alerts)}")
+    print(f"Report saved: {report_file.name}")
+
+
+if __name__ == "__main__":
+    main()
