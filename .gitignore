@@ -6,3 +6,7 @@ __pycache__/
 .DS_Store
 security_alerts.json
 
+
+*_backup.py
+*_backup.json
+threat_detector_step*.py
